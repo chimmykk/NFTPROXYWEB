@@ -1,64 +1,78 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>NFT Ownership Checker</title>
-  </head>
-  <body>
-    <h1>NFT Ownership Checker</h1>
-    <p>Connect your wallet to check if you own a certain NFT.</p>
-    <button id="connect-button">Connect Wallet</button>
-    <p id="result"></p>
-
-    <script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js/dist/web3.min.js"></script>
-    <script src="./nftContractABI.json"></script>
-    <script>
-      const nftContractAddress = '0xE29F8038d1A3445Ab22AD1373c65eC0a6E1161a4'; // Replace with the NFT contract address
-      const walletAddressElement = document.getElementById('wallet-address');
-
-      // Connect to the Ethereum network using Infura endpoint
-      const web3 = new Web3('https://goerli.infura.io/v3/3376a33c419a4d249d680fa54ff8b6bf');
-
-      // Load the NFT contract ABI
-      const nftContractABI = window.nftContractABI;
-
-      // Create a contract instance
-      const nftContract = new web3.eth.Contract(nftContractABI, nftContractAddress);
-
-      // Connect to the wallet
-      const connectWallet = async () => {
-        if (window.ethereum) {
-          try {
-            await window.ethereum.request({ method: 'eth_requestAccounts' });
-            const accounts = await web3.eth.getAccounts();
-            checkNFTOwnership(accounts[0]);
-          } catch (error) {
-            console.error(error);
+<head>
+  <meta charset="UTF-8">
+  <title>Metamask NFT Checker</title>
+  <script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js/dist/web3.min.js"></script>
+</head>
+<body>
+  <h1>Metamask NFT Checker</h1>
+  <p>Click the button below to connect to Metamask and check if you own an NFT from a specific contract.</p>
+  <button id="connectButton">Connect to Metamask</button>
+  <p id="statusMessage"></p>
+  <script>
+    let web3;
+    let contractAddress = '0xCa1c01465EAd33b6D5bFE4997551130362470499';
+    let contractABI = [
+      {
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "tokenId",
+            "type": "uint256"
           }
-        } else {
-          console.error('No wallet found');
-        }
-      };
-
-      // Call the ownerOf function to get the owner of the NFT
-      const checkNFTOwnership = (walletAddress) => {
-        nftContract.methods.balanceOf(walletAddress).call((error, result) => {
-          if (error) {
-            console.error(error);
-          } else {
-            if (parseInt(result) > 0) {
-              console.log('The wallet owns the NFT.');
-              document.getElementById('result').innerHTML = 'Good! Your wallet owns the NFT.';
-            } else {
-              console.log('The wallet does not own the NFT.');
-              document.getElementById('result').innerHTML = 'Sorry, your wallet does not own the NFT.';
-            }
+        ],
+        "name": "ownerOf",
+        "outputs": [
+          {
+            "internalType": "address",
+            "name": "",
+            "type": "address"
           }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      }
+    ];
+    
+    function connectToMetamask() {
+      if (typeof web3 !== 'undefined') {
+        web3 = new Web3(web3.currentProvider);
+      } else {
+        // If no injected web3 instance is detected, fall back to Infura
+        web3 = new Web3(new Web3.providers.HttpProvider('https://goerli.infura.io/v3/3376a33c419a4d249d680fa54ff8b6bf'));
+      }
+      web3.eth.getAccounts()
+        .then((accounts) => {
+          const address = accounts[0];
+          const connectButton = document.getElementById('connectButton');
+          connectButton.textContent = 'Connected';
+          connectButton.disabled = true;
+          document.getElementById('statusMessage').textContent = 'Checking NFT ownership...';
+          checkNFTOwnership(address);
+        })
+        .catch((error) => {
+          console.error(error);
         });
-      };
+    }
 
-      // Add event listener to connect button
-      const connectButton = document.getElementById('connect-button');
-      connectButton.addEventListener('click', connectWallet);
-    </script>
-  </body>
+    function checkNFTOwnership(walletAddress) {
+      const nftContract = new web3.eth.Contract(contractABI, contractAddress);
+      nftContract.methods.ownerOf(1).call((error, result) => {
+        if (error) {
+          console.error(error);
+        } else {
+          if (result === walletAddress) {
+            document.getElementById('statusMessage').textContent = 'Congratulations! You own the NFT.';
+          } else {
+            document.getElementById('statusMessage').textContent = 'Sorry, your wallet does not own the NFT.';
+          }
+        }
+      });
+    }
+
+    const connectButton = document.getElementById('connectButton');
+    connectButton.addEventListener('click', connectToMetamask);
+  </script>
+</body>
 </html>
