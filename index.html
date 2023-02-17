@@ -1,64 +1,60 @@
 <!DOCTYPE html>
 <html>
-<head>
-	<title>My Webpage</title>
-</head>
-<body>
-	<h1>Welcome to My Webpage</h1>
-	<p>To access the content of this page, you must have a connected wallet (Metamask) and hold the required NFT token.</p>
+  <head>
+    <title>Check NFT holdings</title>
+  </head>
+  <body>
+    <h1>Check NFT holdings</h1>
+    <p>Enter wallet address:</p>
+    <input type="text" id="wallet-address">
+    <p>Enter NFT contract address:</p>
+    <input type="text" id="nft-contract-address">
+    <p>Enter NFT token ID:</p>
+    <input type="text" id="nft-token-id">
+    <button onclick="checkNftHoldings()">Check</button>
+    <p id="result"></p>
+    <script>
+      function checkNftHoldings() {
+        const walletAddress = document.getElementById("wallet-address").value;
+        const nftContractAddress = document.getElementById("nft-contract-address").value;
+        const nftTokenId = document.getElementById("nft-token-id").value;
 
-	<!-- Connect wallet button -->
-	<button id="connect-button">Connect to Wallet</button>
+        const apiUrl = `https://eth-goerli.g.alchemy.com/v2/OPLiHQCXVIkbWUj74xeWKFU4nPz6hp0a`;
 
-	<!-- Check if wallet is connected and user has required NFT -->
-	<script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js/dist/web3.min.js"></script>
-	<script src="https://cdn.jsdelivr.net/npm/@alch/alchemy-web3@1.0.10/dist/alchemy-web3.min.js"></script>
-	<script>
-		const contractAddress = '0xE29F8038d1A3445Ab22AD1373c65eC0a6E1161a4';
-		const tokenId = 1;
+        // Replace {API_KEY} with your Alchemy API key.
+        const apiKey = "{API_KEY}";
 
-		window.addEventListener('load', async () => {
-			// Check if Web3 is available
-			if (typeof window.ethereum !== 'undefined') {
-				console.log('Web3 is available!');
-				// Check if user is connected to wallet
-				const web3 = new Web3(window.ethereum);
-				await window.ethereum.enable();
-				const accounts = await web3.eth.getAccounts();
-				if (accounts.length > 0) {
-					console.log(`Wallet connected to ${accounts[0]}`);
-					// Check if user holds the required NFT token
-					const alchemyWeb3 = AlchemyWeb3.createAlchemyWeb3('https://eth-goerli.alchemyapi.io/v2/OPLiHQCXVIkbWUj74xeWKFU4nPz6hp0a');
-					const contract = new alchemyWeb3.eth.Contract(abi, contractAddress);
-					const owner = await contract.methods.ownerOf(tokenId).call();
-					if (owner.toLowerCase() === accounts[0].toLowerCase()) {
-						console.log(`User holds the required NFT token with ID ${tokenId}!`);
-						// Display message
-						document.getElementById('message').innerHTML = 'Yes, you have it!';
-					} else {
-						console.log(`User does not hold the required NFT token with ID ${tokenId}!`);
-					}
-				} else {
-					console.log('Wallet is not connected!');
-				}
-			} else {
-				alert('Please install a Web3-enabled wallet (such as Metamask) to access this webpage!');
-			}
-		});
+        const requestOptions = {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            id: 1,
+            method: "alchemy_getTokenMetadata",
+            params: [nftContractAddress, nftTokenId],
+          }),
+        };
 
-		// Connect to wallet button
-		document.getElementById('connect-button').addEventListener('click', async () => {
-			try {
-				await window.ethereum.enable();
-				console.log('Wallet connected successfully!');
-				alert('Wallet connected successfully!');
-			} catch (error) {
-				console.error(error);
-			}
-		});
-	</script>
+        fetch(apiUrl, requestOptions)
+          .then((response) => response.json())
+          .then((data) => {
+            const tokenHolders = data.result.holders;
 
-	<!-- Display message if user has required NFT -->
-	<div id="message"></div>
-</body>
+            const holdingWallets = tokenHolders.map((holder) => holder.address);
+
+            const result = holdingWallets.includes(walletAddress)
+              ? "Wallet holds the NFT"
+              : "Wallet does not hold the NFT";
+
+            document.getElementById("result").innerText = result;
+          })
+          .catch((error) => {
+            console.log(error);
+            document.getElementById("result").innerText = "Error occurred while checking NFT holdings";
+          });
+      }
+    </script>
+  </body>
 </html>
